@@ -31,6 +31,7 @@ public class PlacementController : MonoBehaviour
     public UnityEvent onPlacementStarted;
     public UnityEvent onPlacementEnded;
     public UnityEvent onBuiltChanged;
+    public UnityEvent onLayoutChanged;
 
     [Header("Touch")]
     // นิ้วขยับไม่เกิน 20 พิกเซล ถือว่า "แตะ" ไม่ใช่ "ลาก"
@@ -133,7 +134,7 @@ public class PlacementController : MonoBehaviour
     public void Confirm()
     {
         if (current == null) return;
-        if (!CanPlace(cell, Size())) return;  // เงาแดง = วางไม่ได้ กดแล้วไม่เกิดอะไร
+        if (!CanPlace(current, cell, Size())) return;  // เงาแดง = วางไม่ได้ กดแล้วไม่เกิดอะไร
 
         if (editing != null)
         {
@@ -143,8 +144,9 @@ public class PlacementController : MonoBehaviour
         else
         {
             if (!CanBuild(current)) return;
-            Place(cell);
+            Spawn(current, cell, rotated);
         }
+        onLayoutChanged.Invoke();
         CancelPlacement();
     }
 
@@ -160,6 +162,7 @@ public class PlacementController : MonoBehaviour
     public void Remove()
     {
         if (editing == null) return;
+        editing.transform.SetParent(null);
         Destroy(editing.gameObject);
         if (editing.item.IsUnique)
         {
@@ -167,6 +170,7 @@ public class PlacementController : MonoBehaviour
             onBuiltChanged.Invoke();
         }
         editing = null;
+        onLayoutChanged.Invoke();
         CancelPlacement();
     }
 
@@ -202,7 +206,7 @@ public class PlacementController : MonoBehaviour
         HandlePointer();
 
         Vector2Int size = Size();
-        bool canPlace = CanPlace(cell, size);
+        bool canPlace = CanPlace(current, cell, size);
 
         // object ตามช่องและสีที่จะบอกว่าวางได้ไหม
         FitToCells(ghost, cell, size);
@@ -322,7 +326,7 @@ public class PlacementController : MonoBehaviour
     }
 
     // เช็คว่าวางได้ไหม
-    bool CanPlace(Vector3Int origin, Vector2Int size)
+    bool CanPlace(Item item, Vector3Int origin, Vector2Int size)
     {
         for (int x = 0; x < size.x; x++)
         {
@@ -330,7 +334,7 @@ public class PlacementController : MonoBehaviour
             {
                 Vector3Int c = origin + new Vector3Int(x, y, 0);
                 if (!floor.HasTile(c) || saveSlot.ContainsKey(c)) return false;
-                if (zones != null && !zones.Allows(c, current.category)) return false;
+                if (zones != null && !zones.Allows(c, item.category)) return false;
             }
         }
         return true;
@@ -350,23 +354,44 @@ public class PlacementController : MonoBehaviour
         footprintMap.color = canPlace ? validAreaColor : invalidAreaColor;
     }
 
-    // วางของ
-    void Place(Vector3Int origin)
+    /// <summary>ของทุกชิ้นบนแมพ — รวมชิ้นที่ซ่อนอยู่เพราะกำลังถูกย้าย (origin ยังเป็นที่เดิม)</summary>
+    public List<PlacedItem> AllPlaced()
     {
-        GameObject go = new GameObject(current.displayName);
+        List<PlacedItem> list = new List<PlacedItem>();
+        foreach (Transform child in placedParent)
+        {
+            PlacedItem placed = child.GetComponent<PlacedItem>();
+            if (placed != null) list.Add(placed);
+        }
+        return list;
+    }
+
+    /// <summary>วางของจากไฟล์เซฟ — false = วางไม่ได้แล้ว (นอกพื้น/นอกโซน/ทับของอื่น/Station ซ้ำ) ข้ามไป</summary>
+    public bool TrySpawn(Item item, Vector3Int origin, bool isRotated)
+    {
+        Vector2Int size = item.GetFootprint();
+        if (isRotated) size = new Vector2Int(size.y, size.x);
+        if (!CanBuild(item) || !CanPlace(item, origin, size)) return false;
+        Spawn(item, origin, isRotated);
+        return true;
+    }
+
+    // สร้างของชิ้นใหม่ (Confirm และการโหลดเซฟใช้ทางเดียวกัน)
+    void Spawn(Item item, Vector3Int origin, bool isRotated)
+    {
+        GameObject go = new GameObject(item.displayName);
         go.transform.SetParent(placedParent, false);
 
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = current.GetSprite();
+        sr.sprite = item.GetSprite();
 
-        PlacedItem placed = go.AddComponent<PlacedItem>();  // จำว่าเป็นของอะไร ไว้ใช้ตอนกดค้างแก้ไข
-        placed.item = current;
-        
-        PutDown(placed, origin, rotated);
+        PlacedItem placed = go.AddComponent<PlacedItem>();  // จำว่าเป็นของอะไร ไว้ใช้ตอนกดค้างแก้ไขและตอนเซฟ
+        placed.item = item;
+        PutDown(placed, origin, isRotated);
 
-        if (current.IsUnique)
+        if (item.IsUnique)
         {
-            placedUnique.Add(current);
+            placedUnique.Add(item);  // วางแล้ว การ์ดใบนี้จะจาง
             onBuiltChanged.Invoke();
         }
     }

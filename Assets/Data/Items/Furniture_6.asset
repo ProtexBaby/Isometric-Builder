@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73b4fd27a7004214d93a66ad4fba0e7d, type: 3}
   m_Name: Furniture_6
   m_EditorClassIdentifier: Assembly-CSharp::Item
+  id: Furniture_6
   displayName: Scarecrow
   category: 0
   footprint: {x: 1, y: 1}
