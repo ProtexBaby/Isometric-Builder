@@ -8,6 +8,7 @@ public class ItemCardList : MonoBehaviour
     [SerializeField] ItemCatalog catalog;
     [SerializeField] ItemCardView cardPrefab;
     [SerializeField] private TabButtonGroup tabGroup;
+    [SerializeField] private PlacementController placement;
 
 
     private void OnEnable()
@@ -28,13 +29,12 @@ public class ItemCardList : MonoBehaviour
         Button button = card.GetComponent<Button>();
         if (button != null)
         {
-            
+            button.onClick.AddListener(() => placement.BeginPlacement(item));
         }
     }
 
     private void FilterItems(int tabIndex)
     {
-        Debug.Log("filter Item");
         foreach (Transform child in transform) Destroy(child.gameObject);
 
         if (catalog == null || cardPrefab == null) return;
