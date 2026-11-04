@@ -8,6 +8,8 @@ public class Item : ScriptableObject
     public Vector2Int footprint = Vector2Int.one;
     public Sprite sprite;
 
+    public bool IsUnique => category == ItemCategory.Station;
+
     public Vector2Int GetFootprint()
     {
         return footprint;

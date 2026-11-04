@@ -10,6 +10,15 @@ public class ItemCardView : MonoBehaviour
 
     public Item Item { get; private set; }
 
+    CanvasGroup canvasGroup;
+
+    public void SetAvailable(bool available)
+    {
+        if (canvasGroup == null) canvasGroup = GetComponent<CanvasGroup>();
+        canvasGroup.alpha = available ? 1f : 0.4f;
+        canvasGroup.interactable = available;
+    }
+
     public void InsertData(Item item)
     {
         Item = item;

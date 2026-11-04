@@ -33,6 +33,16 @@ public class ItemCardList : MonoBehaviour
         }
     }
 
+    public void RefreshAvailability()
+    {
+        if (placement == null) return;
+        foreach (Transform child in transform)
+        {
+            ItemCardView card = child.GetComponent<ItemCardView>();
+            if (card != null && card.Item != null) card.SetAvailable(placement.CanBuild(card.Item));
+        }
+    }
+
     private void FilterItems(int tabIndex)
     {
         foreach (Transform child in transform) Destroy(child.gameObject);
