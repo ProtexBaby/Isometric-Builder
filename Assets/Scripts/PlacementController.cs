@@ -32,6 +32,7 @@ public class PlacementController : MonoBehaviour
     public UnityEvent onPlacementEnded;
     public UnityEvent onBuiltChanged;
     public UnityEvent onLayoutChanged;
+    public UnityEvent<PlacedItem> onPlacedTapped;
 
     [Header("Touch")]
     // นิ้วขยับไม่เกิน 20 พิกเซล ถือว่า "แตะ" ไม่ใช่ "ลาก"
@@ -265,6 +266,17 @@ public class PlacementController : MonoBehaviour
             holdTimer = 0f;
         }
         if (holdTarget == null) return;
+
+        if (pointer.press.wasReleasedThisFrame)
+        {
+            if (Vector2.Distance(screen, holdStart) <= tapDistance)
+            {
+                toolbar.Hide();
+                onPlacedTapped.Invoke(holdTarget);
+            }
+            holdTarget = null;
+            return;
+        }
 
         // ยกนิ้ว / นิ้วเลื่อนออก / สองนิ้ว = ไม่นับเป็นกดค้าง
         if (!pointer.press.isPressed || Vector2.Distance(screen, holdStart) > tapDistance || TouchInput.TouchCount() >= 2)
